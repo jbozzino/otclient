@@ -1,0 +1,11 @@
+MainWindow
+  id: ignoreWindow
+  !text: tr('')
+  size: 300 240
+
+
+  Button
+    id: buttonJump
+    !text: tr('Jump')
+    width: 64
+    @onClick: self:getParent():teleport()

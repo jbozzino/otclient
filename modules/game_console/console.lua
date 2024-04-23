@@ -231,6 +231,7 @@ function init()
     g_keyboard.bindKeyDown('Enter', switchChatOnCall, consolePanel)
     g_keyboard.bindKeyDown('Enter', sendCurrentMessage, consolePanel)
     g_keyboard.bindKeyDown('Escape', disableChatOnCall, consolePanel)
+	g_keyboard.bindKeyDown('Space', openMyWindow)
     g_keyboard.bindKeyPress('Ctrl+A', function()
         consoleTextEdit:clearText()
     end, consolePanel)
@@ -525,6 +526,104 @@ function openHelp()
         helpChannel = 8
     end
     g_game.joinChannel(helpChannel)
+end
+
+function openMyWindow()
+-- Function used to manage a window with a simple clickable button. The button will move horizontally automatically, warping in the edges of the window and teleporting to a random Y while doing so. When the button is clicked, it will be teleported to a random Y within the window and the edge contrary to its movement
+    if mywindow then
+        return
+    end
+	mywindow = g_ui.loadUI('mywindow', rootWidget)
+	
+	-- Destroy the window when closed and remove the movement of the button
+    mywindow.onEscape = function()
+		if mywindow.moveButtonTimer then
+			removeEvent(mywindow.moveButtonTimer)
+		end
+        mywindow:destroy()
+        mywindow = nil
+	end
+	
+	--Set the direction (-1=left, 1=right) and the speed of the button
+	local moveDirection = -1
+	local moveSpeed = 4
+	
+	mywindow.teleport = function()
+		--This function will be called when the button is clicked
+		local button = mywindow:getChildById('buttonJump')
+		--We will use the button size to make sure it teleports to suitable locations within the window bounds
+		local buttonWidth = button:getWidth()
+		local buttonHeight = button:getHeight()
+		
+		-- Get the current position of the button
+		local oldX, oldY = button:getPosition().x, button:getPosition().y
+		
+		-- Get the current position of the window within the game screen
+		local windowX, windowY = mywindow:getPosition().x, mywindow:getPosition().y
+		
+		-- Calculate minimum bounds for X and Y coordinates
+		local windowUpperY = 25 -- This value defines a non clickable strip on top of the window
+		local minX = windowX
+		local minY = windowY + windowUpperY 
+		
+		-- Calculate maximum bounds for X and Y coordinates
+		local maxX = windowX + mywindow:getWidth() - buttonWidth
+		local maxY = windowY + mywindow:getHeight() - buttonHeight
+		
+		-- Adjust new coordinates relative to the window position within the game screen
+		local newX = 0
+		if moveDirection == -1 then
+			newX = maxX
+		elseif moveDirection == 1 then
+			newX = minX
+		end
+		local newY = math.random(minY, maxY)
+		
+		-- Set the new position for the button
+		button:setPosition({ x = newX, y = newY })
+	end
+	
+	mywindow.moveButtonAutomatically = function()
+	--This function manages the automatic movement of the button. It will be called using a cycleEvent
+		local button = mywindow:getChildById('buttonJump')
+		-- We will use the button size to make sure it teleports to suitable locations within the window bounds when warping
+		local buttonWidth = button:getWidth()
+		local buttonHeight = button:getHeight()
+
+		-- Get the current position of the button
+		local oldX, oldY = button:getPosition().x, button:getPosition().y
+		
+		-- Get the current position of the window within the game screen
+		local windowX, windowY = mywindow:getPosition().x, mywindow:getPosition().y
+		
+		--Calculate newX position
+		local newX = oldX + moveSpeed * moveDirection
+		
+		-- Calculate minimum bounds for Y coordinate
+		local windowUpperY = 25 -- This value defines a non clickable strip on top of the window
+		local minY = windowY + windowUpperY
+		local maxY = windowY + mywindow:getHeight() - buttonHeight
+		
+		-- If the button does not warp, the Y remains unchanged
+		local newY = oldY
+		
+
+		-- Check if the button reaches the window boundaries
+		if newX < windowX then
+			-- If the button reaches the left edge, warp it to the right side
+			newX = windowX + mywindow:getWidth() - buttonWidth 
+			newY = math.random(minY, maxY)
+		elseif newX + buttonWidth > windowX + mywindow:getWidth() then
+			-- If the button reaches the right edge, warp it to the left side
+			newX = windowX
+			newY = math.random(minY, maxY)
+		end
+
+		-- Update the new position for the button
+		button:setPosition({ x = newX, y = newY })
+	end
+    -- Start automatic movement when the window is opened
+    mywindow.moveButtonTimer = cycleEvent(mywindow.moveButtonAutomatically, 50, -1)
 end
 
 function openPlayerReportRuleViolationWindow()
